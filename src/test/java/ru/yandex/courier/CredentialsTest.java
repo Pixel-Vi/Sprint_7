@@ -97,6 +97,20 @@ public class CredentialsTest {
                 .body("message", equalTo("Учетная запись не найдена"));
     }
 
+    @Test
+    @DisplayName("Авторизация курьера с другим несуществующим логином")
+    @Description("Проверка ответа после попытки входа, когда в теле запроса передан другой несуществующий логин")
+    public void checkAuthorizationWithAnotherLoginNotRegistered() {
+        // Установка другого несуществующего login
+        courier.setLogin("randomUser12345");
+        ValidatableResponse setCourierIdResponse = courierClient.setCourierID(Credentials.getCredentials(courier));
+        // Проверка, что Status Code = 404 и возвращается ожидаемый текст сообщения
+        setCourierIdResponse.assertThat()
+                .statusCode(404)
+                .and()
+                .body("message", equalTo("Учетная запись не найдена"));
+    }
+
     @After
     public void deleteCourierAfterTest() {
         if (courierId != null) {

@@ -3,12 +3,10 @@ package ru.yandex.courier;
 import io.qameta.allure.Description;
 import io.qameta.allure.junit4.DisplayName;
 import io.restassured.response.ValidatableResponse;
+import org.apache.http.HttpStatus;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import ru.yandex.courier.CourierClient;
-import ru.yandex.courier.CourierCreate;
-import ru.yandex.courier.Credentials;
 
 import static org.hamcrest.Matchers.equalTo;
 
@@ -31,12 +29,12 @@ public class CourierCreateTest {
         ValidatableResponse courierResponse = courierClient.createCourier(courier);
         // Проверка, Status Code = 201 и поле "ok" не пустое
         courierResponse.assertThat()
-                .statusCode(201)
+                .statusCode(HttpStatus.SC_CREATED)
                 .and()
                 .body("ok", equalTo(true));
-        // Получение ID курьера из ответа
-        ValidatableResponse setCourierIdResponse = courierClient.setCourierID(Credentials.getCredentials(courier));
-        courierId = setCourierIdResponse.extract().path("id").toString();
+        // Получение ID курьера из ответа на создание
+        // Используем extract().body().path() для получения ID
+        courierId = courierResponse.extract().path("id");
     }
 
     @Test
@@ -49,12 +47,11 @@ public class CourierCreateTest {
         ValidatableResponse courierResponse = courierClient.createCourier(courier);
         // Проверка, Status Code = 201 и поле "ok" = true
         courierResponse.assertThat()
-                .statusCode(201)
+                .statusCode(HttpStatus.SC_CREATED)
                 .and()
                 .body("ok", equalTo(true));
-        // Получение ID курьера из ответа
-        ValidatableResponse setCourierIdResponse = courierClient.setCourierID(Credentials.getCredentials(courier));
-        courierId = setCourierIdResponse.extract().path("id").toString();
+        // Получение ID курьера из ответа на создание
+        courierId = courierResponse.extract().path("id");
     }
 
     @Test
@@ -62,15 +59,15 @@ public class CourierCreateTest {
     @Description("УЗ не создастся, если в БД уже есть курьер с таким логином")
     public void createDuplicateLoginCourier() {
         // Создание курьера с параметрами
-        courierClient.createCourier(courier);
+        ValidatableResponse firstCreateResponse = courierClient.createCourier(courier);
+        // Сохраняем ID из первого ответа
+        courierId = firstCreateResponse.extract().path("id");
+        
         ValidatableResponse courierResponse = courierClient.createCourier(courier);
         // Проверка, Status Code = 409 и возвращается ожидаемый текст сообщения
-        courierResponse.assertThat().statusCode(409)
+        courierResponse.assertThat().statusCode(HttpStatus.SC_CONFLICT)
                 .and()
                 .body("message", equalTo("Этот логин уже используется. Попробуйте другой."));
-        // Получение ID курьера из ответа
-        ValidatableResponse responseCredentials = courierClient.setCourierID(Credentials.getCredentials(courier));
-        courierId = responseCredentials.extract().path("id").toString();
     }
 
     @Test
@@ -83,7 +80,7 @@ public class CourierCreateTest {
         ValidatableResponse courierResponse = courierClient.createCourier(courier);
         // Проверка, Status Code = 400 и возвращается ожидаемый текст сообщения
         courierResponse.assertThat()
-                .statusCode(400)
+                .statusCode(HttpStatus.SC_BAD_REQUEST)
                 .and()
                 .body("message", equalTo("Недостаточно данных для создания учетной записи"));
 
@@ -98,7 +95,7 @@ public class CourierCreateTest {
         // Создание курьера с параметрами
         ValidatableResponse courierResponse = courierClient.createCourier(courier);
         // Проверка, Status Code = 400 и возвращается ожидаемый текст сообщения
-        courierResponse.assertThat().statusCode(400)
+        courierResponse.assertThat().statusCode(HttpStatus.SC_BAD_REQUEST)
                 .and()
                 .body("message", equalTo("Недостаточно данных для создания учетной записи"));
     }
@@ -116,7 +113,7 @@ public class CourierCreateTest {
         // Создание курьера с параметрами
         ValidatableResponse courierResponse = courierClient.createCourier(courier);
         // Проверка, Status Code = 400 и возвращается ожидаемый текст сообщения
-        courierResponse.assertThat().statusCode(400)
+        courierResponse.assertThat().statusCode(HttpStatus.SC_BAD_REQUEST)
                 .and()
                 .body("message", equalTo("Недостаточно данных для создания учетной записи"));
     }
